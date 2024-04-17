@@ -1,0 +1,14 @@
+__pycache__/
+data/
+results/
+Note.txt
+runs/
+snapshot/
+wandb/
+out_log_*
+error_log_*
+arch/fixed_LRP_layers.py
+pascal*/
+unrolledlrp*/
+pretrain*/
+test*/
