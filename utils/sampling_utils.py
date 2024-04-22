@@ -78,7 +78,7 @@ def make_uniform(dist,alpha):
 
 
 
-def random_sampling_with_distribution(set_labs,n_samples,class_proportions,print_report=True,seed=None):
+def random_sampling_with_distribution(set_labs,n_samples,class_proportions,print_report=False,seed=None):
     '''
     This function randomly samples a subset from an original set 
     (where each element can be assigned to multiple classes - stored in set_labs).
