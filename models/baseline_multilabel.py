@@ -306,12 +306,12 @@ class Baseline(object):
                     storing_examples.update(batch_idx, data.detach().cpu(),sem_gts.detach().cpu(),mask_scores)  
         
         test_loss /= len(self.test_loader.dataset)
-        old_mIoU,_,mIoU,_,match_ratio,avg_class_acc,_,pixel_acc,ap = gen_log_message("test",epoch,test_loss, metrics,len(self.test_loader.dataset),return_value=True,print_class_iou=True)
+        mIoU,_,match_ratio,avg_class_acc,_,pixel_acc,ap = gen_log_message("test",epoch,test_loss, metrics,len(self.test_loader.dataset),return_value=True,print_class_iou=True)
      
         
         if self.args.wandb != 'None':
             wandb_utils.log_testing(self.seen_train_imgs,
-                                    test_loss,old_mIoU,mIoU,match_ratio,pixel_acc,ap,
+                                    test_loss,mIoU,match_ratio,pixel_acc,ap,
                                     storing_examples.get_imgs(),storing_examples.get_gt_masks(),storing_examples.get_pred_masks(),self.data.training_dataset.new_classes)  
 
        

@@ -327,13 +327,13 @@ class TW_Autoencoder(object):
 
 
         test_loss /= len(self.test_loader.dataset)
-        old_mIoU,old_iou_class,mIoU,iou_class,match_ratio,avg_class_acc,class_acc,pixel_acc,ap = gen_log_message("test",epoch,test_loss, metrics,len(self.test_loader.dataset),return_value=True,print_class_iou=True)
+        mIoU,iou_class,match_ratio,avg_class_acc,class_acc,pixel_acc,ap = gen_log_message("test",epoch,test_loss, metrics,len(self.test_loader.dataset),return_value=True,print_class_iou=True)
 
 
     
         if self.args.wandb != 'None':
             wandb_utils.log_testing(self.seen_train_imgs,
-                                    test_loss,old_mIoU,mIoU,match_ratio,pixel_acc,ap,
+                                    test_loss,mIoU,match_ratio,pixel_acc,ap,
                                     storing_examples.get_imgs(),storing_examples.get_gt_masks(),storing_examples.get_pred_masks(),self.data.training_dataset.new_classes)             
 
        

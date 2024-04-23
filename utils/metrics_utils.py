@@ -229,21 +229,6 @@ def gen_log_message(mode,epoch,loss,metrics,total_num_samples,return_value=False
         iou_class=None
         mIoU=0
 
-
-    if "old_iou" in metrics.keys():
-        old_iou_class=metrics["old_iou"]['old_iou_meter']/(metrics["old_iou"]['total_class_num']+1e-8)
-        old_mIoU=old_iou_class.mean().item()
-        
-
-        print(f"The {mode}_mIoU (metrics from kaggle) is {old_mIoU: .4f} and print_class_iou={print_class_iou}")
-        if print_class_iou==True:
-            for i in range(len(old_iou_class)):
-                message+=f"C_{i+1}:{old_iou_class[i]:.2f}; "
-            message=clear_and_print(f"{mode} : IoU (kaggle): "+message)
-            print("------------------------------"*4)
-    else:
-        old_iou_class=None
-        old_mIoU = 0
         
     if "AP" in metrics.keys():
         ap= metrics["AP"]['ap_meter'].avg
@@ -258,23 +243,23 @@ def gen_log_message(mode,epoch,loss,metrics,total_num_samples,return_value=False
         pixel_acc = 0
 
     if return_value:
-        return old_mIoU,old_iou_class, mIoU,iou_class,match_ratio,avg_class_acc,class_accuracy, pixel_acc,ap
+        return mIoU,iou_class,match_ratio,avg_class_acc,class_accuracy, pixel_acc,ap
     else:
         return 
 
 # --------------------------------------
 # Functions for semantic segmentation
 # --------------------------------------
-# metrics from kaggle
-def get_iou(outputs,labels):
-    num_classes=outputs.shape[1]
-    outputs = torch.stack([ torch.argmax(outputs,dim=1)==i for i in range(num_classes) ],dim=1)
-    labels = torch.stack([ labels==i for i in range(num_classes) ],dim=1)
-    intersection=torch.sum(torch.logical_and(outputs,labels), axis=(2,3))
-    union=torch.sum(torch.logical_or(outputs,labels), axis=(2,3))
-    iou = intersection  / (union + 1e-8) # n_samples x classes
-    iou = torch.sum(iou,dim=0) # classes
-    return iou
+# # metrics from kaggle
+# def get_iou(outputs,labels):
+#     num_classes=outputs.shape[1]
+#     outputs = torch.stack([ torch.argmax(outputs,dim=1)==i for i in range(num_classes) ],dim=1)
+#     labels = torch.stack([ labels==i for i in range(num_classes) ],dim=1)
+#     intersection=torch.sum(torch.logical_and(outputs,labels), axis=(2,3))
+#     union=torch.sum(torch.logical_or(outputs,labels), axis=(2,3))
+#     iou = intersection  / (union + 1e-8) # n_samples x classes
+#     iou = torch.sum(iou,dim=0) # classes
+#     return iou
 
 # metrics computing from https://github.com/Haochen-Wang409/U2PL/blob/ab3d2be313d4d6b2885e7a0213d4fce82a803b79/u2pl/utils/utils.py
 def intersectionAndUnion(output, target, K, ignore_index=255):
@@ -285,29 +270,13 @@ def intersectionAndUnion(output, target, K, ignore_index=255):
     assert output.shape == target.shape
     output = output.reshape(output.size).copy()
     target = target.reshape(target.size)
-    output[np.where(target == ignore_index)[0]] = ignore_index
+    output[np.where(target == ignore_index)[0]] = ignore_index # can be ignored as we set the boundary pixel to bg
     intersection = output[np.where(output == target)[0]]
-    area_intersection, _ = np.histogram(intersection, bins=np.arange(K + 1))  #bg seems not be excluded
+    area_intersection, _ = np.histogram(intersection, bins=np.arange(K + 1))  
     area_output, _ = np.histogram(output, bins=np.arange(K + 1))
     area_target, _ = np.histogram(target, bins=np.arange(K + 1))
     area_union = area_output + area_target - area_intersection
     return area_intersection, area_union, area_target
-
-# --------------------------------------
-# Functions for tensorboard summary writer
-# --------------------------------------
-
-def write_summaries(tb_writer,loss,metrics,total_num_samples,epoch):
-    tb_writer.add_scalar('train/val loss',loss, epoch)
-
-    if  "match_ratio" in metrics.keys():
-        match_ratio= metrics["match_ratio"]['total_match_number']/total_num_samples
-        tb_writer.add_scalar('train/val match ratio',match_ratio,epoch)
-
-    if "old_iou" in metrics.keys():
-        iou_class=metrics["old_iou"]['old_iou_meter']/(metrics["old_iou"]['total_class_num']+1e-8)
-        tb_writer.add_scalar('train/val mIoU',iou_class.mean().item(),epoch)
-    return
 
 
 
@@ -367,10 +336,6 @@ def init_metrics(keywords_dict,num_classes):
             metrics["iou"]={}
             metrics["iou"]['intersection_meter']= np.zeros(num_classes)
             metrics["iou"]['union_meter']= np.zeros(num_classes)
-        if "old_iou" in tmp_list:
-            metrics["old_iou"]={}
-            metrics["old_iou"]['old_iou_meter']= torch.zeros(num_classes)
-            metrics["old_iou"]['total_class_num']=torch.zeros(num_classes)
         if "AP" in tmp_list:
             metrics["AP"]={}
             metrics["AP"]['ap_meter']=AverageMeter()
@@ -404,10 +369,6 @@ def update_metrics(metrics,outputs,labels,pred_maps,mask_scores,sem_gts ):
         metrics["iou"]['intersection_meter'] += intersection
         metrics["iou"]['union_meter'] += union
 
-    if "old_iou" in metrics.keys():
-        old_iou=get_iou(pred_maps, sem_gts)
-        metrics["old_iou"]['old_iou_meter'] += old_iou
-        metrics["old_iou"]['total_class_num']+= labels.sum(0) 
 
     if "AP" in metrics.keys():
         # mask_scores=F.softmax(pred_maps, 1)

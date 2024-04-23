@@ -258,7 +258,7 @@ class storing_imgs(object):
 
 
 def log_testing(iter_idx,
-                test_loss,old_mIoU,mIoU,match_ratio,
+                test_loss,mIoU,match_ratio,
                 avg_seg_pxl_accu,avg_seg_ap,
                 imgs,sem_gts,heatmaps,class_dict,
                 columns = 5):
@@ -268,7 +268,6 @@ def log_testing(iter_idx,
 
     # 2) log metrics
     wandb.log({'test_mIoU':mIoU},step=iter_idx)
-    wandb.log({'test_old_mIoU':old_mIoU},step=iter_idx)
     wandb.log({'test_match_ratio':match_ratio},step=iter_idx)  
     wandb.log({'test_seg_pixel_accuracy':avg_seg_pxl_accu},step=iter_idx) 
     wandb.log({'test_seg_AP':avg_seg_ap},step=iter_idx) 
