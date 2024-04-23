@@ -321,11 +321,11 @@ class Baseline(object):
                 # save the model
                 os.makedirs(f"{self.args.save_folder}/{self.args.encoder}_seed{self.args.seed}",exist_ok=True)
                 torch.save(self.model.state_dict(), 
-                    f"{self.args.save_folder}"+f"{self.args.encoder}_seed{self.args.seed}"+
+                    f"{self.args.save_folder}/{self.args.encoder}_seed{self.args.seed}"+
                         f"/{self.args.model}_{self.args.encoder}_iter{self.seen_train_imgs}_lab{self.args.num_labels}_lr{self.args.lr}_bs{self.args.batch_size}.pth")
                 # update mIoU
                 try:
-                    os.remove(f"{self.args.save_folder}"+f"{self.args.encoder}_seed{self.args.seed}"+
+                    os.remove(f"{self.args.save_folder}/{self.args.encoder}_seed{self.args.seed}"+
                             f"/{self.args.model}_{self.args.encoder}_iter{self.max_mIoU_iter}_lab{self.args.num_labels}_lr{self.args.lr}_bs{self.args.batch_size}.pth")
                 except FileNotFoundError:
                     pass
