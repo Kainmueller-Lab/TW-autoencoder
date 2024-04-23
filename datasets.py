@@ -91,7 +91,7 @@ class PASCAL_dataset(torch.utils.data.Dataset):
             
             # reduce number of training masks
             # old version: reduced_mask_names = random_subset(split_mask_names[0],self.fraction_masks) 
-            if self.num_labels != None:
+            if self.num_labels != 0:
                 reduced_mask_names = self.controlled_random_mask_sampling(mask_names=split_mask_names[0],all_lab_names=sub_lab_names,
                                                                           num_labels=self.num_labels,alpha_uniform=self.uniform_masks)
             else:
