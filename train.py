@@ -183,7 +183,7 @@ if __name__ == "__main__":
         print("Start offical training phase-------------------------------")
         for epoch in range(args.pre_epochs + 1, args.epochs + 1):  
             autoenc.train(epoch)
-            autoenc.test(epoch)
+            
 
         end=datetime.now()
         print("Finish training-------------------------------")
