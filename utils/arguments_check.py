@@ -27,6 +27,10 @@ def arguments_check_func(args):
                 print("Unrolled_lrp model's ablation test3")
 
             if args.normal_relu== True and args.normal_deconv==False:
+                args.iterative_gradients=True
+                args.add_classification=True
+                args.semisup_dataset=True
+                print(f"Warning: args.iterative_gradients, args.add_classificatio and args.semisup_dataset are set to True automatically")
                 print("Unrolled_lrp model's ablation test1")
 
             if (args.normal_relu== False and args.normal_deconv==False) or (args.normal_deconv==True):
