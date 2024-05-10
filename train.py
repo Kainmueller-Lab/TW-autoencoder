@@ -109,6 +109,11 @@ parser.add_argument('--only_send_labeled_data', action="store_true") # only pass
 # variant3: --normal_relu --normal_deconv --normal_unpool --remove_heaviside --remove_last_relu
 ###################################
 
+###################################
+# arguments designed for ablation test, if model == 'std_unet'
+parser.add_argument('--fcn', action="store_true") 
+###################################
+
 
 args = parser.parse_args()
 

@@ -66,7 +66,10 @@ class Baseline(object):
                     in_channels=3,
                     classes=args.num_classes,
                     decoder_symmetric=True,
-                    add_classification=False
+                    add_classification=False,
+                    #add for ablation test
+                    ablation_test=args.ablation_test,
+                    fcn=args.fcn,
                 ).to(self.device)
         elif args.model== "mt_unet":
             self.model = create_model(
