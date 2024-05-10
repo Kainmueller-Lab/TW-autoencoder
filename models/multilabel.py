@@ -30,12 +30,28 @@ class TW_Autoencoder(object):
         self.max_mIoU = 0 # for model saving
         self.max_mIoU_iter= 0 # for model saving
 
-        #semi supervision mode
-        print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
-        self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
-                                                    args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
-        self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
-        self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=args.batch_size)
+
+        if args.semisup_dataset==False: #for ablation test
+            #full supervision mode
+            print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            args.batch_size=min(len(self.data.training_dataset.idx_mask),args.batch_size)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,batch_size=args.batch_size, shuffle=True)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+ 
+        else:
+            #semi supervision mode
+            print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
+                                                        args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+        
+        # #semi supervision mode
+        # print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+        # self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
+        #                                             args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
+        # self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
+        # self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=args.batch_size)
         if args.pre_batch_size>0 and args.pre_epochs>0:
             self.pre_train_loader=torch.utils.data.DataLoader(self.data.pre_training_dataset,batch_size=args.pre_batch_size,shuffle=True)
             self.pre_test_loader=torch.utils.data.DataLoader(self.data.pre_testing_dataset, batch_size=args.pre_batch_size)
@@ -203,7 +219,7 @@ class TW_Autoencoder(object):
         watch = wandb_utils.watch_gradients()
 
         # reshuffle sampler again and setup again trainloader
-        self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=self.args.batch_size)
+        # self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=self.args.batch_size)
 
         for batch_idx, (data, class_labels,sem_gts,sem_gt_exist) in enumerate(self.train_loader): 
             
@@ -238,6 +254,7 @@ class TW_Autoencoder(object):
                 
                 loss.backward()
             
+            print(f"epoch {epoch}, self.seen_train_imgs {self.seen_train_imgs}, h_loss {loss1.item():.2f} c_loss {loss2.item():.2f}.")
             train_loss += loss.item()
             with torch.no_grad():
                 if self.args.wandb != 'None':
@@ -282,7 +299,7 @@ class TW_Autoencoder(object):
         
                 self.seen_train_imgs += num_samples
                 
-                print(f"epoch {epoch}, self.seen_train_imgs {self.seen_train_imgs}")
+                # print(f"epoch {epoch}, self.seen_train_imgs {self.seen_train_imgs}")
                 remain=self.seen_train_imgs //3000
                 if self.seen_train_imgs<remain*3000+self.args.batch_size:
                     self.test(epoch)

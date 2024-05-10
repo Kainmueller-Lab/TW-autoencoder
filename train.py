@@ -91,7 +91,7 @@ parser.add_argument('--concate_before_block', action="store_true")
 
 ################################## 
 # arguments designed for ablation test, if model == 'unrolled_lrp'
-parser.add_argument('-ablation_test', action="store_true") 
+parser.add_argument('--ablation_test', action="store_true") 
 parser.add_argument('--normal_relu', action="store_true") # variant1 normal_relu==True
 parser.add_argument('--normal_deconv', action="store_true") # variant2 normal_relu==True and normal_deconv==True
 parser.add_argument('--normal_unpool', action="store_true") # variant3 normal_unpool=True normal_relu==True and normal_deconv==True
