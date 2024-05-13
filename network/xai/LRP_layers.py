@@ -281,14 +281,24 @@ class LRP_transposeconv2d(RelProp):
         if self.normal_deconv:
             # if it is tied with the first layer in the encoder, we set the output channels=21
             if self.m.in_tensor.shape[1] == 3:
-                self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=21,
+                if self.m.stride==(1,1):
+                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=21,
+                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
+                                                groups=self.m.groups,bias=True) #bias=None
+                else:
+                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=21,
                                                 kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
                                                 output_padding=self.output_pad(),groups=self.m.groups,bias=True) #bias=None
                 print(f"First Free tranposeconv2d layer, out_channels=21, bias=True")
             else:
-                self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
-                                                    kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                    output_padding=self.output_pad(),groups=self.m.groups,bias=True) #bias=None
+                if self.m.stride==(1,1):
+                    self.inv_m=torch.nn.Conv2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
+                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
+                                                groups=self.m.groups,bias=True) #bias=None
+                else:
+                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
+                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
+                                                output_padding=self.output_pad(),groups=self.m.groups,bias=True) #bias=None
                 print(f"Free tranposeconv2d layer, bias=True")
         
         else:
