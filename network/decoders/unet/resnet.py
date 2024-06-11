@@ -22,10 +22,10 @@ class Resnet_Decoder(nn.Module):
         # self.inv_layer4=self._make_inv_layer(encoder.layer4)
         self.encoder = encoder
 
-        # self.inv_layer4 = self._make_inv_layer(
-        #     encoder.layer4, 0, 1,  bottle_up=True)
         self.inv_layer4 = self._make_inv_layer(
-            encoder.layer4, 0, 1)
+            encoder.layer4, 0, 1,  bottle_up=True)
+        # self.inv_layer4 = self._make_inv_layer(
+        #     encoder.layer4, 0, 1)
         self.inv_layer3 = self._make_inv_layer(
             encoder.layer3, skip_channels[-2], 1)
         self.inv_layer2 = self._make_inv_layer(

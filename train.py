@@ -27,8 +27,6 @@ parser.add_argument('--uniform_masks', type=float, default=0.0, metavar='N',
                     help='switches the distribution of sampled masks to uniform distribution regarding the class labels')     
 
 # model
-# parser.add_argument('--model', type=str, default='AE', metavar='N',
-#                     help='Which architecture to use')
 parser.add_argument('--model', type=str, default='mt_unet', choices=['mt_unet','std_unet','unrolled_lrp'])       
 parser.add_argument('--encoder', type=str, default='vgg16',choices=['vgg16','vgg16_bn','resnet18','resnet34','resnet50','resnet101'],
                     help='the backbone for the encoder')  
