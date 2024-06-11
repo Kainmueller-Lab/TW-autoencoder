@@ -55,9 +55,9 @@ class ClassificationHead(nn.Module):
         return x
 
     def forward(self, x):
-        if "vgg" in self.backbone:
+        if "vgg" in self.encoder_name:
             out=self.vgg_cl_head_forward(x)
-        elif "resnet" in self.backbone:
+        elif "resnet" in self.encoder_name:
             out=self.resnet_cl_head_forwad(x)
         else:
             raise NotImplementedError
