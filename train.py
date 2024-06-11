@@ -70,7 +70,7 @@ parser.add_argument('--loss_impact_seg', type=float, default=1, metavar='N',
                     help='scaling / impact of the segmentation loss')
 parser.add_argument('--loss_impact_bottleneck', type=float, default=1, metavar='N',
                     help='scaling / impact of the bottleneck loss')            
-parser.add_argument('--lr', type=float, default=1e-3, metavar='N', help='learning rate') 
+parser.add_argument('--lr', type=float, default=1e-5, metavar='N', help='learning rate') 
 
 
 ################################### 
