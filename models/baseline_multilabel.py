@@ -13,7 +13,7 @@ from utils.plot_utils import *
 from utils.metrics_utils import *
 from utils.sampling_utils import *
 # import torch.utils.data.sampler as sampler
-
+import random
 # set up wandb 
 import utils.wandb_utils as wandb_utils
 from network import create_model
@@ -35,26 +35,6 @@ class Baseline(object):
         self.seen_train_imgs = 0
         self.max_mIoU = 0 # for model saving
         self.max_mIoU_iter= 0 # for model saving
-
-     
-        if args.add_classification==False:
-            #full supervision mode
-            print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
-            args.batch_size=min(len(self.data.training_dataset.idx_mask),args.batch_size)
-            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,batch_size=args.batch_size, shuffle=True)
-            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
- 
-        else:
-            #semi supervision mode
-            print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
-            self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
-                                                        args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
-            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
-            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
-        if args.pre_batch_size>0 and args.pre_epochs>0:
-            self.pre_train_loader=torch.utils.data.DataLoader(self.data.pre_training_dataset,batch_size=args.pre_batch_size,shuffle=True)
-            self.pre_test_loader=torch.utils.data.DataLoader(self.data.pre_testing_dataset, batch_size=args.pre_batch_size)
-
 
         # model
         assert args.model in ["std_unet","mt_unet"], "The loaded model should be std_unet or mt_unet."
@@ -83,11 +63,36 @@ class Baseline(object):
                 ).to(self.device)
         else:
             raise NotImplementedError
-
-        self.model.to(self.device)
-
-
         self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr)
+
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        random.seed(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+        if args.add_classification==False:
+            #full supervision mode
+            print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            args.batch_size=min(len(self.data.training_dataset.idx_mask),args.batch_size)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,batch_size=args.batch_size, shuffle=True)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+ 
+        else:
+            #semi supervision mode
+            print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
+                                                        args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+        if args.pre_batch_size>0 and args.pre_epochs>0:
+            self.pre_train_loader=torch.utils.data.DataLoader(self.data.pre_training_dataset,batch_size=args.pre_batch_size,shuffle=True)
+            self.pre_test_loader=torch.utils.data.DataLoader(self.data.pre_testing_dataset, batch_size=args.pre_batch_size)
+
+
+        
         self.alpha = args.loss_impact_seg #hyperparam for heatmap loss
         self.beta = args.loss_impact_bottleneck #hyperparam for classification loss
 
@@ -420,6 +425,8 @@ class Baseline(object):
             raise NotImplementedError
         
         self.load_pretrain_model_variant(pretrain_weight_name)
+        cp_epoch=10
+        self.seen_train_imgs = cp_epoch * 15676
 
         return 
         

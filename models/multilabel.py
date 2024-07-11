@@ -6,6 +6,7 @@ from collections import OrderedDict
 import sys
 sys.path.append('../')
 
+import random
 import logging
 from datasets import  PASCAL
 import numpy as  np
@@ -30,7 +31,40 @@ class TW_Autoencoder(object):
         self.max_mIoU = 0 # for model saving
         self.max_mIoU_iter= 0 # for model saving
 
+        self.model = create_model(
+            "Unrolled_lrp",
+            encoder_name=args.encoder,
+            encoder_weights="imagenet",
+            in_channels=3,
+            classes=args.num_classes,
+            xai=args.xai,
+            epsilon=args.epsilon,
+            alpha=args.alpha,
+            detach_bias=True,
+            # input_size is used for running test_forward for unrolled_lrp model
+            # And it will help to predefine the output_padding for ConvTranspose2d layer and kernel size of the inv_adaptive avgpool layer in the decoder
+            # here we only consider the case that the eval/test images size is same as the train images, could be improved to be general later
+            input_size=(args.crop_size,args.crop_size),
+            ablation_test=args.ablation_test,
+            normal_relu=args.normal_relu,
+            normal_deconv=args.normal_deconv,
+            normal_unpool=args.normal_unpool,
+            multiply_input=args.multiply_input,
+            remove_heaviside=args.remove_heaviside,
+            remove_last_relu=args.remove_last_relu,
+            add_bottle_conv=args.add_bottle_conv
+        ).to(self.device)
 
+
+        self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr)
+
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        random.seed(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        
         if args.semisup_dataset==False: #for ablation test
             #full supervision mode
             print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
@@ -58,32 +92,7 @@ class TW_Autoencoder(object):
 
         # model
         assert args.model == "unrolled_lrp", "The loaded model should be unrolled_lrp."
-        self.model = create_model(
-            "Unrolled_lrp",
-            encoder_name=args.encoder,
-            encoder_weights="imagenet",
-            in_channels=3,
-            classes=args.num_classes,
-            xai=args.xai,
-            epsilon=args.epsilon,
-            alpha=args.alpha,
-            detach_bias=True,
-            # input_size is used for running test_forward for unrolled_lrp model
-            # And it will help to predefine the output_padding for ConvTranspose2d layer and kernel size of the inv_adaptive avgpool layer in the decoder
-            # here we only consider the case that the eval/test images size is same as the train images, could be improved to be general later
-            input_size=(args.crop_size,args.crop_size),
-            ablation_test=args.ablation_test,
-            normal_relu=args.normal_relu,
-            normal_deconv=args.normal_deconv,
-            normal_unpool=args.normal_unpool,
-            multiply_input=args.multiply_input,
-            remove_heaviside=args.remove_heaviside,
-            remove_last_relu=args.remove_last_relu,
-            add_bottle_conv=args.add_bottle_conv
-        ).to(self.device)
-
-
-        self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr)
+        
         self.alpha = args.loss_impact_seg #hyperparam for heatmap loss
         self.beta = args.loss_impact_bottleneck #hyperparam for classification loss 
 
@@ -453,6 +462,9 @@ class TW_Autoencoder(object):
         #     self.model.load_state_dict(checkpoint)
         
         self.load_pretrain_model_variant(pretrain_weight_name)
+        ####################check and delete later 09.07.2024
+        cp_epoch=10
+        self.seen_train_imgs = cp_epoch * 15676
 
         return 
         

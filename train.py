@@ -121,12 +121,12 @@ arguments_check_func(args)
     
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
-np.random.seed(args.seed)
-random.seed(args.seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# torch.manual_seed(args.seed)
+# torch.cuda.manual_seed(args.seed)
+# np.random.seed(args.seed)
+# random.seed(args.seed)
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 
 logger_folder=args.save_folder if args.save_folder!='None' else 'test/'
 os.makedirs(logger_folder, exist_ok=True)
