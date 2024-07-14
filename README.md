@@ -67,6 +67,12 @@ qsub train.sh train.py --model unrolled_lrp --semisup_dataset --data_path /fast/
 
 - TODO rewrite above comments which is used for running on the max cluster
 
+example
+```
+python train.py --model std_unet --batch_size 10 --pretrain_weight_name ./snapshot/resnet50_10_pre_train_21 --en
+coder resnet50 --seed 42 --epochs 15000 --num_labels 20 --uniform_masks 1.0 --save_folder std_unet_resnet50_lab20_lr1e-5_s42
+```
+
 - TODO write conda environment for running the code.
 
 

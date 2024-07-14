@@ -4,9 +4,7 @@ import torch
 from datetime import datetime
 import wandb
 import random
-from utils.arguments_check import arguments_check_func
-# from models.multilabel import TW_Autoencoder
-# from models.baseline_multilabel import Baseline
+# from utils.arguments_check import arguments_check_func
 import logging
 
 
@@ -116,7 +114,7 @@ parser.add_argument('--fcn', action="store_true")
 args = parser.parse_args()
 
 #############################################################################
-arguments_check_func(args)
+# arguments_check_func(args)
 ###################################################################################
     
 

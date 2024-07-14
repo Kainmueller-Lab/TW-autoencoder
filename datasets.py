@@ -136,6 +136,36 @@ class PASCAL_dataset(torch.utils.data.Dataset):
 
         return reduced_mask_names
 
+    def weight_from_seg_gt(self):
+        weight=np.zeros(self.num_classes)
+        for i in range(len(self.idx_mask)):
+            idx=self.idx_mask[i]
+            if self.mask_names[idx] != 'None':
+                mask = np.array(Image.open(self.path+self.folder_masks+self.mask_names[idx]))
+                img = np.array(Image.open(self.path+self.folder_images+self.img_names[idx]))
+                mask[mask == 255] = 0 # delete boundary class
+                small_side = min(img.shape[:-1])
+                
+                transform = A.Compose([
+                    A.RandomCrop(height=small_side,width=small_side,always_apply=True),
+                    A.Resize(height=self.crop_size,width=self.crop_size),
+                    A.Defocus(radius=(1,5)),
+                    A.RandomBrightnessContrast(p=2),
+                    A.ColorJitter(),
+                    A.HorizontalFlip(p=0.5),
+                    A.GaussNoise(),
+                    ToTensorV2()
+                ])
+               
+                transformed = transform(image=img,mask=mask) 
+                mask = transformed["mask"] # HxW
+                # map to new rough or subset classes (identety map when turned of)
+                # mask = self.map_classes(mask,self.map)
+                tmp_weight=np.bincount(mask.flatten(),minlength=self.num_classes)
+                weight+=tmp_weight
+        print(f"There are {len(self.idx_mask)} masks with num_pixels {weight}")
+        return torch.tensor(weight)
+   
 
    
 
