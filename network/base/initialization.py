@@ -4,7 +4,8 @@ import torch.nn as nn
 def initialize_decoder(module):
     for m in module.modules():
 
-        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        # if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        if isinstance(m, nn.Conv2d):
             nn.init.kaiming_uniform_(m.weight, mode="fan_in", nonlinearity="relu")
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)

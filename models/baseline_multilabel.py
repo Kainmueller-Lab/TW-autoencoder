@@ -36,7 +36,36 @@ class Baseline(object):
         self.max_mIoU = 0 # for model saving
         self.max_mIoU_iter= 0 # for model saving
 
-        # model
+    
+
+        # torch.manual_seed(args.seed)
+        # torch.cuda.manual_seed(args.seed)
+        # np.random.seed(args.seed)
+        # random.seed(args.seed)
+        # torch.backends.cudnn.deterministic = True
+        # torch.backends.cudnn.benchmark = False
+
+
+        if args.add_classification==False:
+            #full supervision mode
+            print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            args.batch_size=min(len(self.data.training_dataset.idx_mask),args.batch_size)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,batch_size=args.batch_size, shuffle=True)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+ 
+        else:
+            #semi supervision mode
+            print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
+            self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
+                                                        args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
+            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+        if args.pre_batch_size>0 and args.pre_epochs>0:
+            self.pre_train_loader=torch.utils.data.DataLoader(self.data.pre_training_dataset,batch_size=args.pre_batch_size,shuffle=True)
+            self.pre_test_loader=torch.utils.data.DataLoader(self.data.pre_testing_dataset, batch_size=args.pre_batch_size)
+
+
+            # model
         assert args.model in ["std_unet","mt_unet"], "The loaded model should be std_unet or mt_unet."
         if args.model=="std_unet":
             self.model = create_model(
@@ -64,33 +93,6 @@ class Baseline(object):
         else:
             raise NotImplementedError
         self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr)
-
-        torch.manual_seed(args.seed)
-        torch.cuda.manual_seed(args.seed)
-        np.random.seed(args.seed)
-        random.seed(args.seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-
-        if args.add_classification==False:
-            #full supervision mode
-            print(f"The model is trained in FULL supervised manner with {len(self.data.training_dataset.idx_mask)} images")
-            args.batch_size=min(len(self.data.training_dataset.idx_mask),args.batch_size)
-            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,batch_size=args.batch_size, shuffle=True)
-            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
- 
-        else:
-            #semi supervision mode
-            print(f"The model is trained in SEMI supervised manner with {len(self.data.training_dataset.idx_mask)} images")
-            self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
-                                                        args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
-            self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
-            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
-        if args.pre_batch_size>0 and args.pre_epochs>0:
-            self.pre_train_loader=torch.utils.data.DataLoader(self.data.pre_training_dataset,batch_size=args.pre_batch_size,shuffle=True)
-            self.pre_test_loader=torch.utils.data.DataLoader(self.data.pre_testing_dataset, batch_size=args.pre_batch_size)
-
 
         
         self.alpha = args.loss_impact_seg #hyperparam for heatmap loss

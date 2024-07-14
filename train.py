@@ -5,8 +5,8 @@ from datetime import datetime
 import wandb
 import random
 from utils.arguments_check import arguments_check_func
-from models.multilabel import TW_Autoencoder
-from models.baseline_multilabel import Baseline
+# from models.multilabel import TW_Autoencoder
+# from models.baseline_multilabel import Baseline
 import logging
 
 
@@ -121,12 +121,12 @@ arguments_check_func(args)
     
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-# torch.manual_seed(args.seed)
-# torch.cuda.manual_seed(args.seed)
-# np.random.seed(args.seed)
-# random.seed(args.seed)
-# torch.backends.cudnn.deterministic = True
-# torch.backends.cudnn.benchmark = False
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+np.random.seed(args.seed)
+random.seed(args.seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 logger_folder=args.save_folder if args.save_folder!='None' else 'test/'
 os.makedirs(logger_folder, exist_ok=True)
@@ -147,9 +147,11 @@ if __name__ == "__main__":
     # create the model (autoencoder)
     try:
         if args.model in ['mt_unet','std_unet']:
+            from models.baseline_multilabel import Baseline
             autoenc=Baseline(args,logger)
-        elif args.model == 'unrolled_lrp':
-            autoenc=TW_Autoencoder(args,logger)
+        # elif args.model == 'unrolled_lrp':
+        #     # from models.multilabel import TW_Autoencoder
+        #     autoenc=TW_Autoencoder(args,logger)
         else:
             raise NotImplementedError
     except KeyError:
