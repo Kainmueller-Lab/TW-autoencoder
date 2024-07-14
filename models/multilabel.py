@@ -97,6 +97,12 @@ class TW_Autoencoder(object):
         self.beta = args.loss_impact_bottleneck #hyperparam for classification loss 
 
         self.logger = logger
+
+        # get the weight from seg_gt
+        w_seg_gt=self.data.training_dataset.weight_from_seg_gt()
+        w_seg_gt=1/w_seg_gt
+        w_seg_gt[0]=0
+        self.w_seg_gt=w_seg_gt/w_seg_gt.sum()
         
 
         
