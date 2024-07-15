@@ -450,7 +450,7 @@ class LRP_BN2d( RelProp):
             relevance_out =  scale* safe_divide(self.m.in_tensor,self.m.out_tensor).detach()*relevance_in # change on 09/07/2023
         
             
-            assert not torch.isnan(relevance_out).any(), f"invser_{self.m} layer has nan output {relevance_out.max()} {relevance_out.min()}{in_out_ratio.max()} {in_out_ratio.min()} {scale.max()} {scale.min()}."
+            assert not torch.isnan(relevance_out).any(), f"invser_{self.m} layer has nan output {relevance_out.max()} {relevance_out.min()} {scale.max()} {scale.min()}."
         return relevance_out
 
         # if self.m.training: #change on 09/07/2023
@@ -493,34 +493,6 @@ class LRP_BN2d( RelProp):
 
     
 
-
-class LRP_BN1d(RelProp):
-    def __init__(self, BN, **kwargs):
-        super(LRP_BN1d, self).__init__()
-        assert isinstance(BN,nn.BatchNorm1d), "Please tie with a batchnorm1d layer"
-        self.xai=kwargs['xai']
-        self.eps=kwargs['epsilon']
-        self.alpha=kwargs['alpha']
-
-
-        self.m=BN
-    
-    def forward(self,relevance_in):
-        if self.xai=="LRP_epsilon":
-            relevance_out=self.LRP_eps_forward(relevance_in)
-        elif self.xai=="LRP_alphabeta":
-            relevance_out=self.LRP_ab_forward(relevance_in)
-        return relevance_out
-
-    
-    def LRP_eps_forward(self,relevance_in):
-        scale=self.m.weight.reshape(1,-1)/torch.sqrt(self.m.running_var+self.m.eps).reshape(1,-1)
-        relevance_out =  scale*self.m.in_tensor/self.m.out_tensor*relevance_in
-        assert not torch.isnan(relevance_out).any(), f"invser_{self.m} layer has nan output relevance"
-        return relevance_out
-
-    def LRP_ab_forward(self,relevance_in):
-        return relevance_in # TODO check how to do BN1D ab forward, as well as for BN2D
 
 
 
