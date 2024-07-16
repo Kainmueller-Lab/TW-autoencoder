@@ -98,22 +98,15 @@ class LRP_linear(RelProp):
         self.eps=kwargs['epsilon']
         self.alpha=kwargs['alpha']
         self.detach_bias=kwargs['detach_bias']
-        self.normal_relu=kwargs['normal_relu']
-        self.normal_deconv=kwargs['normal_deconv']
-        self.remove_heaviside=kwargs['remove_heaviside']
-        if self.xai!="LRP_epsilon":
-            assert self.normal_deconv==False and self.normal_relu==False, "LRP_alphabeta/cLRP does not support normal_deconv and normal_relu, understruction"
+        
 
         self.top_layer=kwargs.pop('top_layer', False)
         print(f"For LRP layer in Linear layer, 'detach bias' = {self.detach_bias}")
 
-        if self.normal_deconv:
-            self.inv_m=nn.Linear(in_features=linear.out_features, out_features=linear.in_features, bias=True) #bias=None
-            print(f"First Free linear layer, bias=True")
-        else:
-            self.m=linear       
-            self.inv_m=nn.Linear(in_features=self.m.out_features, out_features=self.m.in_features, bias=None) #bias=None
-            self.inv_m.weight=nn.Parameter(self.m.weight.t())
+        
+        self.m=linear       
+        self.inv_m=nn.Linear(in_features=self.m.out_features, out_features=self.m.in_features, bias=None) #bias=None
+        self.inv_m.weight=nn.Parameter(self.m.weight.t())
 
     def forward(self,relevance_in):
         if self.xai=="LRP_epsilon":
@@ -136,33 +129,13 @@ class LRP_linear(RelProp):
 
 
     def LRP_eps_forward(self,relevance_in):
-        if self.normal_deconv and self.normal_relu:
-            relevance_out=self.inv_m(relevance_in)
-
-        elif not self.normal_deconv and self.normal_relu:
-            if self.top_layer:
-                if self.remove_heaviside:
-                    relevance_out=self.inv_m(relevance_in) # different from above as the definition of self.inv_m changes
-                else:
-                    # relevance_in[relevance_in!=0]=1.0
-                    # relevance_out=self.inv_m(relevance_in) # different from above as the definition of self.inv_m changes
-                    if self.m.bias==None or self.detach_bias==False:
-                        out_tensor=self.m.forward(self.m.in_tensor)
-                    else:
-                        out_tensor = F.linear(self.m.in_tensor,self.m.weight,self.m.bias.detach()) # change on 13/07/2023
-                    relevance_out = self.inv_m(safe_divide(relevance_in,out_tensor+self.eps))
-            else:
-                relevance_out=self.inv_m(relevance_in) # different from above as the definition of self.inv_m changes
-        
+        if self.m.bias==None or self.detach_bias==False:
+            out_tensor=self.m.forward(self.m.in_tensor)
         else:
-           
-            if self.m.bias==None or self.detach_bias==False:
-                out_tensor=self.m.forward(self.m.in_tensor)
-            else:
-                out_tensor = F.linear(self.m.in_tensor,self.m.weight,self.m.bias.detach()) # change on 13/07/2023
-            relevance_out = self.inv_m(safe_divide(relevance_in,out_tensor+self.eps))
-            relevance_out *= self.m.in_tensor
-    
+            out_tensor = F.linear(self.m.in_tensor,self.m.weight,self.m.bias.detach()) # change on 13/07/2023
+        relevance_out = self.inv_m(safe_divide(relevance_in,out_tensor+self.eps))
+        relevance_out *= self.m.in_tensor
+
 
         assert not torch.any(relevance_out.isnan()), f"{self.inv_m} layer has nan output relevance"
         return relevance_out
@@ -268,47 +241,19 @@ class LRP_transposeconv2d(RelProp):
         self.alpha=kwargs['alpha']
         self.detach_bias=kwargs['detach_bias']
 
-        self.normal_relu=kwargs['normal_relu']
-        self.normal_deconv=kwargs['normal_deconv']
-        if self.xai!="LRP_epsilon":
-            assert self.normal_deconv==False and self.normal_relu==False, "LRP_alphabeta/cLRP does not support normal_deconv and normal_relu, understruction"
-
-
+      
 
         self.m=conv2d 
         self.in_tensor_shape=self.m.in_tensor.shape
 
-        if self.normal_deconv:
-            # if it is tied with the first layer in the encoder, we set the output channels=21
-            if self.m.in_tensor.shape[1] == 3:
-                if self.m.stride==(1,1):
-                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=21,
-                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                groups=self.m.groups,bias=True) #bias=None
-                else:
-                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=21,
-                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                output_padding=self.output_pad(),groups=self.m.groups,bias=True) #bias=None
-                print(f"First Free tranposeconv2d layer, out_channels=21, bias=True")
-            else:
-                if self.m.stride==(1,1):
-                    self.inv_m=torch.nn.Conv2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
-                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                groups=self.m.groups,bias=True) #bias=None
-                else:
-                    self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
-                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                output_padding=self.output_pad(),groups=self.m.groups,bias=True) #bias=None
-                print(f"Free tranposeconv2d layer, bias=True")
         
-        else:
-            self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
-                                                kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
-                                                output_padding=self.output_pad(),groups=self.m.groups,bias=None) #bias=None
-            # self.m.weight (c_out,c_in, k0,k1)
-            # self.inv_m.weight (c_in, c_out, k0,k1)
-            self.inv_m.weight=nn.Parameter(self.m.weight) # no need to do transpose(0,1)
-            print(f"Tied tranposeconv2d layer, 'detach bias' = {self.detach_bias}")
+        self.inv_m=torch.nn.ConvTranspose2d(in_channels=self.m.out_channels, out_channels=self.m.in_channels,
+                                            kernel_size=self.m.kernel_size, stride=self.m.stride, padding=self.m.padding, 
+                                            output_padding=self.output_pad(),groups=self.m.groups,bias=None) #bias=None
+        # self.m.weight (c_out,c_in, k0,k1)
+        # self.inv_m.weight (c_in, c_out, k0,k1)
+        self.inv_m.weight=nn.Parameter(self.m.weight) # no need to do transpose(0,1)
+        print(f"Tied tranposeconv2d layer, 'detach bias' = {self.detach_bias}")
 
     def output_pad(self):
         k=self.m.kernel_size
@@ -330,20 +275,14 @@ class LRP_transposeconv2d(RelProp):
         return relevance_out
 
     def LRP_eps_forward(self,relevance_in):
-        if self.normal_deconv and self.normal_relu:
-            relevance_out=self.inv_m(relevance_in)
-
-        elif not self.normal_deconv and self.normal_relu:
-            relevance_out=self.inv_m(relevance_in) # different from above as the definition of self.inv_m changes
-        
+       
+        if self.m.bias==None or self.detach_bias==False:
+            out_tensor=self.m.forward(self.m.in_tensor) # change on 16/07/2023 (find bug)
         else:
-            if self.m.bias==None or self.detach_bias==False:
-                out_tensor=self.m.forward(self.m.in_tensor) # change on 16/07/2023 (find bug)
-            else:
-                out_tensor=F.conv2d(self.m.in_tensor,weight=self.m.weight, bias=self.m.bias.detach(), stride=self.m.stride, padding=self.m.padding) # change on 13/07/2023
-            relevance_out = self.inv_m(safe_divide(relevance_in,out_tensor+self.eps))
-            relevance_out *= self.m.in_tensor
-            assert not torch.isnan(relevance_out).any(), f"{self.inv_m} layer has nan output layer"
+            out_tensor=F.conv2d(self.m.in_tensor,weight=self.m.weight, bias=self.m.bias.detach(), stride=self.m.stride, padding=self.m.padding) # change on 13/07/2023
+        relevance_out = self.inv_m(safe_divide(relevance_in,out_tensor+self.eps))
+        relevance_out *= self.m.in_tensor
+        assert not torch.isnan(relevance_out).any(), f"{self.inv_m} layer has nan output layer"
         return relevance_out
     
     def cal_outpad(self):
@@ -412,45 +351,26 @@ class LRP_BN2d( RelProp):
         self.eps=kwargs['epsilon']
         self.alpha=kwargs['alpha']
 
-        self.normal_relu=kwargs['normal_relu']
-        self.normal_deconv=kwargs['normal_deconv']
-        if self.xai!="LRP_epsilon":
-            assert self.normal_deconv==False and self.normal_relu==False, "LRP_alphabeta/cLRP does not support normal_deconv and normal_relu, understruction"
-
+      
         self.m=BN
 
-        if self.normal_deconv: # should be discarded as we set BN layer outside when self.normal_deconv=True
-            self.batch_norm=nn.BatchNorm2d(self.m.num_features)
-
-    
 
     def LRP_eps_forward(self,relevance_in):
-        if self.normal_deconv and self.normal_relu:
-            relevance_out=self.batch_norm(relevance_in)
-        
-        elif not self.normal_deconv and self.normal_relu:
-            if self.m.training:
-                scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(torch.var(self.m.in_tensor,dim=(0,-2,-1),keepdim=True,unbiased=False) 
-                                +self.m.eps).reshape(1,-1,1,1)).detach()
-            else:
-                scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(self.m.running_var+self.m.eps).reshape(1,-1,1,1)).detach()
-            relevance_out=scale*relevance_in
-
+  
+        # self.test_BN_property()
+        if self.m.training: #change on 09/07/2023
+            # torch.var need to set the unbiased=False
+            scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(torch.var(self.m.in_tensor,dim=(0,-2,-1),keepdim=True,unbiased=False) 
+                            +self.m.eps).reshape(1,-1,1,1)).detach()
+            
         else:
-            # self.test_BN_property()
-            if self.m.training: #change on 09/07/2023
-                # torch.var need to set the unbiased=False
-                scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(torch.var(self.m.in_tensor,dim=(0,-2,-1),keepdim=True,unbiased=False) 
-                                +self.m.eps).reshape(1,-1,1,1)).detach()
-                
-            else:
-                scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(self.m.running_var+self.m.eps).reshape(1,-1,1,1)).detach() # scale must be assigned at the forward pass
-                
+            scale=safe_divide(self.m.weight.reshape(1,-1,1,1),torch.sqrt(self.m.running_var+self.m.eps).reshape(1,-1,1,1)).detach() # scale must be assigned at the forward pass
             
-            relevance_out =  scale* safe_divide(self.m.in_tensor,self.m.out_tensor).detach()*relevance_in # change on 09/07/2023
-        
-            
-            assert not torch.isnan(relevance_out).any(), f"invser_{self.m} layer has nan output {relevance_out.max()} {relevance_out.min()} {scale.max()} {scale.min()}."
+
+        relevance_out =  scale* safe_divide(self.m.in_tensor,self.m.out_tensor).detach()*relevance_in # change on 09/07/2023
+
+
+        assert not torch.isnan(relevance_out).any(), f"invser_{self.m} layer has nan output {relevance_out.max()} {relevance_out.min()} {scale.max()} {scale.min()}."
         return relevance_out
 
         # if self.m.training: #change on 09/07/2023
@@ -505,9 +425,7 @@ class LRP_avgpool2d( RelProp):
         self.eps=kwargs['epsilon']
         self.alpha=kwargs['alpha']
 
-        self.normal_relu=kwargs['normal_relu']
-        self.normal_deconv=kwargs['normal_deconv']
-
+      
 
         self.m=avgpool2d
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -533,22 +451,17 @@ class LRP_avgpool2d( RelProp):
       
 
     def LRP_eps_forward(self,relevance_in):
-       
+  
+        # its reverse operation is F.conv_transpose2d with groups=in_channels
+        # groups in transpose_conv2d https://medium.com/@reachraktim/convolutions-from-scratch-conv2d-transpose-convolution-group-convolution-depth-wise-a917f334c59c
+        # no parameter need to be update so use function
+        # F.interpolate equals to avgunpool?
+        
+        out_tensor=self.m.forward(self.m.in_tensor)
 
-        if self.normal_deconv or self.normal_relu:
-            self.update_const_weight()
-            relevance_out=F.conv_transpose2d(relevance_in,weight=self.const_weight,bias=None, stride=self.m.stride,groups=self.m.in_channels)
-        else:
-            # its reverse operation is F.conv_transpose2d with groups=in_channels
-            # groups in transpose_conv2d https://medium.com/@reachraktim/convolutions-from-scratch-conv2d-transpose-convolution-group-convolution-depth-wise-a917f334c59c
-            # no parameter need to be update so use function
-            # F.interpolate equals to avgunpool?
-          
-            out_tensor=self.m.forward(self.m.in_tensor)
-
-            # update self.const_weight
-            self.update_const_weight()
-            relevance_out=self.m.in_tensor*F.conv_transpose2d(safe_divide(relevance_in,out_tensor),weight=self.const_weight,bias=None, stride=self.m.stride,groups=self.m.in_channels)
+        # update self.const_weight
+        self.update_const_weight()
+        relevance_out=self.m.in_tensor*F.conv_transpose2d(safe_divide(relevance_in,out_tensor),weight=self.const_weight,bias=None, stride=self.m.stride,groups=self.m.in_channels)
         return relevance_out # debug on 17.02.2023
 
     def LRP_ab_forward(self,relevance_in):
@@ -577,14 +490,8 @@ class LRP_maxpool2d( RelProp):
         self.xai=kwargs['xai']
         self.eps=kwargs['epsilon']
         self.alpha=kwargs['alpha']
-        self.normal_unpool=kwargs['normal_unpool']
-        if self.normal_unpool:
-            print("Using nearest interpolation for unpooling")
-        else:
-            print(f"Tied max-unpooling layer.")
-
-        # no change need for ablation test setting which set normal_relu or normal_deconv==True
-
+      
+        print(f"Tied max-unpooling layer.")
 
 
         self.m=maxpool2d
@@ -603,12 +510,10 @@ class LRP_maxpool2d( RelProp):
 
     def LRP_eps_forward(self,relevance_in):
         # no parameter need to be update so use function
-        if self.normal_unpool:
-            relevance_out=F.interpolate(relevance_in,scale_factor=self.m.stride,mode="nearest")
-        else:
-            relevance_out=F.max_unpool2d(relevance_in,self.m.indices,
-                                self.m.kernel_size, self.m.stride,
-                                self.m.padding, output_size=self.m.in_shape) #todo check padding attributes as well for LRP_avgpool2d
+        
+        relevance_out=F.max_unpool2d(relevance_in,self.m.indices,
+                            self.m.kernel_size, self.m.stride,
+                            self.m.padding, output_size=self.m.in_shape) #todo check padding attributes as well for LRP_avgpool2d
        
         return relevance_out # prove to be right implementation
 
@@ -663,30 +568,16 @@ class LRP_bottle_conv(RelProp):
         self.eps=kwargs['epsilon']
         self.alpha=kwargs['alpha']
         self.detach_bias=kwargs['detach_bias']
-        self.normal_relu=kwargs['normal_relu']
-        self.normal_deconv=kwargs['normal_deconv']
-        self.remove_heaviside=kwargs['remove_heaviside']
-        self.add_bottle_conv=kwargs['add_bottle_conv']
-        if self.xai!="LRP_epsilon":
-            assert self.normal_deconv==False and self.normal_relu==False, "LRP_alphabeta/cLRP does not support normal_deconv and normal_relu, understruction"
-
+      
         self.top_layer=kwargs.pop('top_layer', False)
         print(f"For LRP layer in Linear layer, 'detach bias' = {self.detach_bias}")
         self.m=linear
         self.window_size=prod(avgpool.kernel_size)
 
     def forward(self,relevance_in,class_idx):
-        if self.normal_deconv:
-            if self.add_bottle_conv:
-                weight=self.m.weight.sum(dim=0)
-                weight=(weight/self.window_size).reshape(-1,1,1,1)
-                relevance_out= F.conv2d(relevance_in, weight=weight, bias=True, groups=relevance_in.shape[1])
-                # the bais of bottle_conv is set to True
-            else:
-                relevance_out= relevance_in
-        else:
-            # the shape of linear.weight [out_features, in_features] =[21, num_features]
-            weight=self.m.weight[class_idx,:]
-            weight=(weight/self.window_size).reshape(-1,1,1,1)
-            relevance_out= F.conv2d(relevance_in, weight=weight, bias=None, groups=relevance_in.shape[1])
+       
+        # the shape of linear.weight [out_features, in_features] =[21, num_features]
+        weight=self.m.weight[class_idx,:]
+        weight=(weight/self.window_size).reshape(-1,1,1,1)
+        relevance_out= F.conv2d(relevance_in, weight=weight, bias=None, groups=relevance_in.shape[1])
         return relevance_out

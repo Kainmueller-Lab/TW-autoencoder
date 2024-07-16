@@ -11,10 +11,10 @@ class Inv_BasicBlock(nn.Module):
         self.param=param
        
 
-        self.inv_bn2= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn2, **param) if not self.param['normal_deconv'] else nn.BatchNorm2d(block.conv2.in_channels)
+        self.inv_bn2= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn2, **param) 
         self.inv_conv2= getattr(implib(mod_name), f'{xai_s}_transposeconv2d')(block.conv2, **param)
 
-        self.inv_bn1= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn1, **param) if not self.param['normal_deconv'] else nn.BatchNorm2d(block.conv1.in_channels)
+        self.inv_bn1= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn1, **param) 
         self.inv_conv1= getattr(implib(mod_name), f'{xai_s}_transposeconv2d')(block.conv1, **param)
 
         if block.downsample is not None:

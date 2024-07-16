@@ -5,19 +5,18 @@ from torch import nn
 from ._utils import minmax_dims, safe_divide
 
 class Inv_Bottleneck(nn.Module):
-    def __init__(self,mod_name, xai_s, block , param, remove_last_relu=False):
+    def __init__(self,mod_name, xai_s, block , param):
         super().__init__()
         # print(block)
         self.param=param
-        self.remove_last_relu=remove_last_relu
     
-        self.inv_bn3 = getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn3, **param) if not self.param['normal_deconv'] else nn.BatchNorm2d(block.conv3.in_channels)
+        self.inv_bn3 = getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn3, **param) 
         self.inv_conv3 = getattr(implib(mod_name), f'{xai_s}_transposeconv2d')(block.conv3, **param)
 
-        self.inv_bn2= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn2, **param) if not self.param['normal_deconv'] else nn.BatchNorm2d(block.conv2.in_channels)
+        self.inv_bn2= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn2, **param)
         self.inv_conv2= getattr(implib(mod_name), f'{xai_s}_transposeconv2d')(block.conv2, **param)
 
-        self.inv_bn1= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn1, **param) if not self.param['normal_deconv'] else nn.BatchNorm2d(block.conv1.in_channels)
+        self.inv_bn1= getattr(implib(mod_name), f'{xai_s}_BN2d')(block.bn1, **param) 
         self.inv_conv1= getattr(implib(mod_name), f'{xai_s}_transposeconv2d')(block.conv1, **param)
 
         if block.downsample is not None:
