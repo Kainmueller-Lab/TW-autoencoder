@@ -10,22 +10,16 @@ import torch.nn.functional as F
 
 import sys
 class Resnet_Decoder(nn.Module):
-    def __init__(self, encoder, ablation_test, fcn):
+    def __init__(self, encoder):
         super(Resnet_Decoder, self).__init__()
-
-        # add for ablation_test 
+ 
         skip_channels=encoder.out_channels
-        if ablation_test and fcn: # reset skip_channels
-            skip_channels=(*([0]*(len(encoder.out_channels)-1)),encoder.out_channels[-1])
-            
+        
         # ignore the layer4 as this is the bottleneck layer
-        # self.inv_layer4=self._make_inv_layer(encoder.layer4)
         self.encoder = encoder
 
         self.inv_layer4 = self._make_inv_layer(
             encoder.layer4, 0, 1,  bottle_up=True)
-        # self.inv_layer4 = self._make_inv_layer(
-        #     encoder.layer4, 0, 1)
         self.inv_layer3 = self._make_inv_layer(
             encoder.layer3, skip_channels[-2], 1)
         self.inv_layer2 = self._make_inv_layer(

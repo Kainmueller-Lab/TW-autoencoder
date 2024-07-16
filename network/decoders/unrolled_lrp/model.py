@@ -20,16 +20,7 @@ class Unrolled_lrp(nn.Module):
         epsilon: float = 1e-8,
         alpha: float = 1.0,
         detach_bias: bool = True,
-        input_size: tuple = (512,512),
-        ablation_test: bool = False,
-        normal_relu : bool = False,
-        normal_deconv :bool = False,
-        normal_unpool : bool = False,
-        multiply_input : bool = False,
-        remove_heaviside : bool = False,
-        remove_last_relu : bool = False,
-        add_bottle_conv : bool = False
-
+        input_size: tuple = (256,256)
     ):
         super().__init__()
 
@@ -46,17 +37,12 @@ class Unrolled_lrp(nn.Module):
         self.test_forward(self.encoder,in_channels, input_size)
 
 
-        self.ablation_test=ablation_test
+        
         self.tied_weights_decoder= Tied_weighted_decoder(encoder_name,
             self.encoder, xai, epsilon, alpha,
-            detach_bias=detach_bias,
-            ablation_test=ablation_test,
-            normal_relu=normal_relu, normal_deconv=normal_deconv,
-            normal_unpool=normal_unpool,
-            multiply_input=multiply_input,remove_heaviside=remove_heaviside,
-            remove_last_relu=remove_last_relu, add_bottle_conv=add_bottle_conv)
+            detach_bias=detach_bias)
 
-        self.normal_deconv=normal_deconv
+        
         
     def forward(self, x, targets=None, only_classification=False):
         '''
@@ -66,17 +52,14 @@ class Unrolled_lrp(nn.Module):
             z = self.encoder(x) 
             return z
         else:
-            if self.normal_deconv: # only one decoder branch
-                z = self.encoder(x) 
-                heatmaps=self.tied_weights_decoder(z,0) # random put a class_idx
-            else:
-                z = self.encoder(x) 
-                # calculate the heatmap for all classes, self.num_segments decoder branches
-                heatmaps_poket=[]
-                for i in range(self.num_segments):
-                    tmp_heatmaps=self.tied_weights_decoder(self.indi_features(z,i),i)
-                    heatmaps_poket.append(tmp_heatmaps) # (N, H, W)
-                heatmaps=torch.stack(heatmaps_poket,dim=1)  # (N, num_segments, H, W)
+           
+            z = self.encoder(x) 
+            # calculate the heatmap for all classes, self.num_segments decoder branches
+            heatmaps_poket=[]
+            for i in range(self.num_segments):
+                tmp_heatmaps=self.tied_weights_decoder(self.indi_features(z,i),i)
+                heatmaps_poket.append(tmp_heatmaps) # (N, H, W)
+            heatmaps=torch.stack(heatmaps_poket,dim=1)  # (N, num_segments, H, W)
             return z, heatmaps
 
 

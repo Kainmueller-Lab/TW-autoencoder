@@ -68,15 +68,7 @@ class TW_Autoencoder(object):
             # input_size is used for running test_forward for unrolled_lrp model
             # And it will help to predefine the output_padding for ConvTranspose2d layer and kernel size of the inv_adaptive avgpool layer in the decoder
             # here we only consider the case that the eval/test images size is same as the train images, could be improved to be general later
-            input_size=(args.crop_size,args.crop_size),
-            ablation_test=args.ablation_test,
-            normal_relu=args.normal_relu,
-            normal_deconv=args.normal_deconv,
-            normal_unpool=args.normal_unpool,
-            multiply_input=args.multiply_input,
-            remove_heaviside=args.remove_heaviside,
-            remove_last_relu=args.remove_last_relu,
-            add_bottle_conv=args.add_bottle_conv
+            input_size=(args.crop_size,args.crop_size)
         ).to(self.device)
 
 
@@ -219,7 +211,6 @@ class TW_Autoencoder(object):
         self.model.train()
         train_loss = 0
         metrics=init_metrics(self.train_metrics,self.args.num_classes)
-        watch = wandb_utils.watch_gradients()
 
         # reshuffle sampler again and setup again trainloader
         self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=self.args.batch_size)
@@ -258,10 +249,6 @@ class TW_Autoencoder(object):
                 loss.backward()
             
             train_loss += loss.item()
-            with torch.no_grad():
-                if self.args.wandb != 'None':
-                    watch.update(self.model,iter=self.seen_train_imgs)
-
             self.optimizer.step()
     
        
@@ -391,8 +378,6 @@ class TW_Autoencoder(object):
         print("Only load the encoder pretrain-weight part")
         # only pick the encoder pretrain weight
         checkpoint =torch.load(pretrain_weight_name + '.pth')
-        # print(self.model.encoder)
-        # print(checkpoint.keys())
         # filter out the decoder layers checkpoint
         for key in list(checkpoint.keys()):
             if 'tied_weights_decoder' in key: #or 'classifier' in key:
@@ -404,37 +389,9 @@ class TW_Autoencoder(object):
         self.model.encoder.load_state_dict(checkpoint)
    
 
-
-
-    def delete_decoder_weights_checkpoint(self, checkpoint):
-        for key in list(checkpoint.keys()):
-            if 'tied_weights_decoder' in key: 
-                del checkpoint[key]
-            elif 'encoder.' in key: 
-                checkpoint[key.replace('encoder.', '')] = checkpoint[key]
-                del checkpoint[key]
-        return checkpoint
-
     # This is the load_pretrain_model function for unrolled_lrp model, not applicable to unet model
     def load_pretrain_model(self,pretrain_weight_name):
         print(f"Load pretrained weights {pretrain_weight_name + '.pth'}")
-        # if pretrain_weight_name[-2:]=='21':
-        #     print("WARNING: using old pretrain weight")
-        #     checkpoint=self.align_checkpoint_dict(pretrain_weight_name)
-           
-        # else:
-        #     checkpoint =torch.load(pretrain_weight_name + '.pth')
-    
-        # # print(checkpoint.keys())
-        # # print("======================="*3)
-        # # print(self.model.state_dict().keys())
-     
-        # if self.args.ablation_test:
-        #     # if do ablation test, only load the encoder pretrain_weights
-        #     encoder_checkpoint=self.delete_decoder_weights_checkpoint(checkpoint)
-        #     self.model.encoder.load_state_dict(encoder_checkpoint)     
-        # else:
-        #     self.model.load_state_dict(checkpoint)
         
         self.load_pretrain_model_variant(pretrain_weight_name)
         ####################check and delete later 09.07.2024

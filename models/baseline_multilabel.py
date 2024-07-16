@@ -36,15 +36,6 @@ class Baseline(object):
         self.max_mIoU = 0 # for model saving
         self.max_mIoU_iter= 0 # for model saving
 
-    
-
-        # torch.manual_seed(args.seed)
-        # torch.cuda.manual_seed(args.seed)
-        # np.random.seed(args.seed)
-        # random.seed(args.seed)
-        # torch.backends.cudnn.deterministic = True
-        # torch.backends.cudnn.benchmark = False
-
 
         if args.add_classification==False:
             #full supervision mode
@@ -75,10 +66,7 @@ class Baseline(object):
                     in_channels=3,
                     classes=args.num_classes,
                     decoder_symmetric=True,
-                    add_classification=False,
-                    #add for ablation test
-                    ablation_test=args.ablation_test,
-                    fcn=args.fcn,
+                    add_classification=False
                 ).to(self.device)
         elif args.model== "mt_unet":
             self.model = create_model(
@@ -359,51 +347,6 @@ class Baseline(object):
     # --------------------------------------
     # Functions for loading pretrain weights
     # --------------------------------------
-        
-    def align_checkpoint_dict(self, pretrain_weight_name):
-        checkpoint =torch.load(pretrain_weight_name + '.pth')
-        # standardize the checkpoint keys
-        cl_head_checkpoint=OrderedDict()      
-        # filter out the decoder layers checkpoint
-        for key in list(checkpoint.keys()):
-            if 'tied_weights_decoder' in key: #or 'classifier' in key:
-                checkpoint[key.replace('tied_weights_decoder.', 'tied_weights_decoder.decoder.')] = checkpoint[key]
-                del checkpoint[key]
-            elif 'encoder.backbone.' in key:
-                
-                checkpoint[key.replace('encoder.backbone.', 'encoder.')] = checkpoint[key]
-                del checkpoint[key]
-
-
-        return checkpoint
-    
-    def load_pretrain_model_variant(self,pretrain_weight_name):
-        print("Only load the encoder pretrain-weight part")
-        # only pick the encoder pretrain weight
-        checkpoint =torch.load(pretrain_weight_name + '.pth')
-        # print(self.model.encoder)
-        # print(checkpoint.keys())
-        # filter out the decoder layers checkpoint
-        for key in list(checkpoint.keys()):
-            if 'tied_weights_decoder' in key: #or 'classifier' in key:
-                del checkpoint[key]
-            elif 'encoder.backbone.' in key:            
-                checkpoint[key.replace('encoder.backbone.', '')] = checkpoint[key]
-                del checkpoint[key]
-
-        self.model.encoder.load_state_dict(checkpoint)
-   
-
-
-
-    def delete_decoder_weights_checkpoint(self, checkpoint):
-        for key in list(checkpoint.keys()):
-            if 'tied_weights_decoder' in key: 
-                del checkpoint[key]
-            elif 'encoder.' in key: 
-                checkpoint[key.replace('encoder.', '')] = checkpoint[key]
-                del checkpoint[key]
-        return checkpoint
 
     # This is the load_pretrain_model function for unrolled_lrp model, not applicable to unet model
     def load_pretrain_model(self,pretrain_weight_name):
@@ -414,7 +357,6 @@ class Baseline(object):
             if 'tied_weights_decoder' in key: #or 'classifier' in key:
                 del checkpoint[key]
             elif 'encoder.backbone.' in key:
-                
                 checkpoint[key.replace('encoder.backbone.', '')] = checkpoint[key]
                 del checkpoint[key]
 
@@ -432,7 +374,6 @@ class Baseline(object):
         else:
             raise NotImplementedError
         
-        self.load_pretrain_model_variant(pretrain_weight_name)
         cp_epoch=10
         self.seen_train_imgs = cp_epoch * 15676
 

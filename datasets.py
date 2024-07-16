@@ -48,7 +48,6 @@ class PASCAL_dataset(torch.utils.data.Dataset):
         self.folder_labels = 'Annotations/'
         self.folder_masks = 'SegmentationClass/'
         
-        self.dataset = 'full'
         self.mode=kwargs['mode']
         self.num_labels = kwargs['num_labels']
         self.uniform_masks = kwargs['uniform_masks']

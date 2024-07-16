@@ -65,9 +65,7 @@ class Unet(SegmentationModel):
         classes: int = 1,
         activation: Optional[Union[str, callable]] = None,
         decoder_symmetric: bool = False,
-        add_classification : bool = False,
-        ablation_test : bool = False,
-        fcn : bool = False
+        add_classification : bool = False
     ):
         super().__init__()
 
@@ -85,9 +83,7 @@ class Unet(SegmentationModel):
             print("The UNet is symmetric")
             self.decoder = UnetDecoder_sym(
                 encoder_name,
-                self.encoder,
-                ablation_test = ablation_test,
-                fcn =fcn)
+                self.encoder)
             in_channels = 64
         else:
             self.decoder = UnetDecoder(

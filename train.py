@@ -4,7 +4,6 @@ import torch
 from datetime import datetime
 import wandb
 import random
-# from utils.arguments_check import arguments_check_func
 import logging
 
 
@@ -71,52 +70,8 @@ parser.add_argument('--loss_impact_bottleneck', type=float, default=1, metavar='
 parser.add_argument('--lr', type=float, default=1e-5, metavar='N', help='learning rate') 
 
 
-################################### 
-# arguments designed for mt_unet, std_unet
-parser.add_argument('--no_skip_connection', action="store_true")
-parser.add_argument('--fully_symmetric_unet', action="store_true")
-parser.add_argument('--concate_before_block', action="store_true")
-
-# v1 original 
-# v2 --no_skip_connection should worse than original
-# v3 --no_skip_connection --fully_symmetric_unet should equal to unorlled_lrp variant2 case
-# V4 --concate_before_block may be better than original
-###################################
-
-
-
-################################## 
-# arguments designed for ablation test, if model == 'unrolled_lrp'
-parser.add_argument('--ablation_test', action="store_true") 
-parser.add_argument('--normal_relu', action="store_true") # variant1 normal_relu==True
-parser.add_argument('--normal_deconv', action="store_true") # variant2 normal_relu==True and normal_deconv==True
-parser.add_argument('--normal_unpool', action="store_true") # variant3 normal_unpool=True normal_relu==True and normal_deconv==True
-parser.add_argument('--multiply_input', action="store_true") 
-parser.add_argument('--remove_heaviside', action="store_true") 
-parser.add_argument('--remove_last_relu', action="store_true") 
-parser.add_argument('--add_bottle_conv', action="store_true") 
-parser.add_argument('--only_send_labeled_data', action="store_true") # only pass through labeled data
-
-# variant1_1: --normal_relu --remove_last_relu --multiply_input 
-# variant1_2: --normal_relu --remove_last_relu --remove_heaviside (--multiply_input) 
-# variant2_1_1: --normal_relu --normal_deconv --remove_heaviside --remove_last_relu
-# variant2_1_2: --normal_relu --normal_deconv --remove_heaviside --remove_last_relu --only_send_labeled_data
-# variant2_2: --normal_relu --normal_deconv --remove_heaviside --remove_last_relu --add_bottle_conv 
-# variant3: --normal_relu --normal_deconv --normal_unpool --remove_heaviside --remove_last_relu
-###################################
-
-###################################
-# arguments designed for ablation test, if model == 'std_unet'
-parser.add_argument('--fcn', action="store_true") 
-###################################
-
-
 args = parser.parse_args()
 
-#############################################################################
-# arguments_check_func(args)
-###################################################################################
-    
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 torch.manual_seed(args.seed)
