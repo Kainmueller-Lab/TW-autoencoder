@@ -574,10 +574,13 @@ class LRP_bottle_conv(RelProp):
         self.m=linear
         self.window_size=prod(avgpool.kernel_size)
 
+        self.weights=nn.Parameter(self.m.weight/self.window_size)
+
     def forward(self,relevance_in,class_idx):
        
         # the shape of linear.weight [out_features, in_features] =[21, num_features]
-        weight=self.m.weight[class_idx,:]
-        weight=(weight/self.window_size).reshape(-1,1,1,1)
-        relevance_out= F.conv2d(relevance_in, weight=weight, bias=None, groups=relevance_in.shape[1])
+        # weight=self.m.weight[class_idx,:]
+        # weight=(weight/self.window_size).reshape(-1,1,1,1)
+        relevance_out= F.conv2d(relevance_in, weight=self.weights[class_idx,:].reshape(-1,1,1,1), 
+                                bias=None, groups=relevance_in.shape[1]) #TODO check F.conv2d weights is trainable or not
         return relevance_out

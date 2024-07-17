@@ -39,9 +39,14 @@ class Unrolled_Resnet_Decoder(nn.Module):
         self.mod_name=mod_name
         self.xai_s=xai_s
 
-       
-        self.bottleneck=encoder.avgpool
-        self.bottle_conv = getattr(implib(mod_name),f'{xai_s}_bottle_conv')(encoder.fc,encoder.avgpool, **param)
+        # using self.inv_linear_1 and self.inv_avgpool is same as using self.bottleneck
+        self.inv_linear_1=getattr(implib(mod_name),f'{xai_s}_linear')(encoder.fc, **param, top_layer=True)
+        self.inv_avgpool=getattr(implib(mod_name), f'{xai_s}_avgpool2d')(encoder.avgpool, **param)
+        self.avgpool_os=encoder.avgpool.output_size
+
+        # TODO change to use self.bottleneck
+        # self.bottleneck=encoder.avgpool
+        # self.bottle_conv = getattr(implib(mod_name),f'{xai_s}_bottle_conv')(encoder.fc,encoder.avgpool, **param)
         
 
 
@@ -63,10 +68,14 @@ class Unrolled_Resnet_Decoder(nn.Module):
         class_idx, int
         '''
      
-       
-        x = self.bottleneck.in_tensor
+        x = self.inv_linear_1(x)
+        x = x.view(x.shape[0],-1,*self.avgpool_os)
+        x = self.inv_avgpool(x)
+
         # equal to gradients flow until avgpool layer and then multiply with avgpool.in_tensor
-        x = self.bottle_conv(x, class_idx) 
+        # TODO change to use self.bottle_conv
+        # x = self.bottleneck.in_tensor
+        # x = self.bottle_conv(x, class_idx) 
 
         x = self.inv_layer4(x)
         x = self.inv_layer3(x)
