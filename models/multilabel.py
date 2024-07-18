@@ -46,7 +46,7 @@ class TW_Autoencoder(object):
             self.train_sampler = semi_supervised_sampler(self.data.training_dataset.idx_mask, self.data.training_dataset.idx_no_mask,
                                                         args.batch_size, len(self.data.training_dataset),0.5, 1.0,args.seed)
             self.train_loader=torch.utils.data.DataLoader(self.data.training_dataset,sampler=self.train_sampler.sample(),batch_size=args.batch_size)
-            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=40)
+            self.test_loader=torch.utils.data.DataLoader(self.data.testing_dataset, batch_size=10)
         
        
         if args.pre_batch_size>0 and args.pre_epochs>0:
@@ -193,7 +193,7 @@ class TW_Autoencoder(object):
            
         test_loss /= len(self.pre_test_loader.dataset)
 
-        _,_,_,_,match_ratio,avg_class_acc,_,_,_ = gen_log_message("pre-test",epoch,test_loss, metrics,len(self.pre_test_loader.dataset),return_value=True,print_class_iou=False)
+        _,_,match_ratio,avg_class_acc,_,_,_ = gen_log_message("pre-test",epoch,test_loss, metrics,len(self.pre_test_loader.dataset),return_value=True,print_class_iou=False)
        
 
         if self.args.wandb != 'None':
@@ -217,7 +217,7 @@ class TW_Autoencoder(object):
 
         for batch_idx, (data, class_labels,sem_gts,sem_gt_exist) in enumerate(self.train_loader): 
             
-            # measure number of samples before it goes to if function about self.args.only_send_labeled_data
+            # measure number of samples 
             num_samples=len(data)
             # 1) prepare data
             data, class_labels, sem_gts = data.to(self.device),class_labels.to(self.device), sem_gts.long().to(self.device)
@@ -239,10 +239,6 @@ class TW_Autoencoder(object):
                         loss1.backward(retain_graph=True) # backpropagate heatmap loss individually
                 loss2.backward() # backpropagate classification loss
             else:
-                if self.args.only_send_labeled_data: #only design for ablation test
-                    data=data[sem_gt_exist==True]
-                    class_labels=class_labels[sem_gt_exist==True]
-                    sem_gts=sem_gts[sem_gt_exist==True]
                 class_scores,heatmaps = self.model(data,class_labels)
                 loss, loss1, loss2= self.loss_function(class_scores,class_labels,heatmaps,sem_gts,sem_gt_exist)
                 
@@ -285,7 +281,6 @@ class TW_Autoencoder(object):
     def test(self, epoch):
         
         self.model.eval()
-        # init parameters etc. for tracking
         test_loss = 0
    
         metrics=init_metrics(self.test_metrics,self.args.num_classes)
@@ -315,6 +310,9 @@ class TW_Autoencoder(object):
 
 
         test_loss /= len(self.test_loader.dataset)
+
+        # Reminder: match_ratio and avg_class_acc are not good for accessing the classification perfromance
+        # we check F1 score after saving the best checkpoint for segmentation task
         mIoU,iou_class,match_ratio,avg_class_acc,class_acc,pixel_acc,ap = gen_log_message("test",epoch,test_loss, metrics,len(self.test_loader.dataset),return_value=True,print_class_iou=True)
 
 
